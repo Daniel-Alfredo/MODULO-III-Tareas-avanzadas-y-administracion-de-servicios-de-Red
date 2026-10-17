@@ -1,0 +1,116 @@
+Práctica 1
+1. Configurar tiempo de espera de GRUB a 20 segundos
+Abrir el archivo de configuración de GRUB:
+
+Bash
+sudo vi /etc/default/grub
+Modificar o agregar la línea del tiempo de espera:
+
+Plaintext
+GRUB_TIMEOUT=20
+Regenerar la configuración de GRUB:
+
+Bash
+sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+(Si el sistema usa UEFI: sudo grub2-mkconfig -o /boot/efi/EFI/redhat/grub.cfg)
+
+Mostrar el resultado de la configuración:
+
+Bash
+grep GRUB_TIMEOUT /etc/default/grub
+2. Método de recuperación de contraseña de root
+Reiniciar el sistema y en el menú de GRUB presionar la tecla e sobre la entrada principal para editar las opciones de arranque.
+
+Buscar la línea que comienza con linux (o linux16 / linuxefi) y agregar al final de esa línea:
+
+Plaintext
+rd.break
+Presionar Ctrl + x para arrancar en modo de emergencia.
+
+Ejecutar los siguientes comandos en la terminal de emergencia:
+
+Bash
+mount -o remount,rw /sysroot
+chroot /sysroot
+passwd root
+touch /.autorelabel
+exit
+exit
+Práctica 2
+1. Script para backup comprimido de /home/$USER con fecha y hora
+Crear el archivo backup.sh:
+
+Bash
+cat << 'EOF' > backup.sh
+#!/bin/bash
+FECHA=$(date +"%d-%m-%Y:%H:%M")
+tar -czvf "backup_${FECHA}.tar.gz" "/home/$USER"
+EOF
+chmod +x backup.sh
+./backup.sh
+2. Script para guardar salida de ifconfig (o ip a) en el escritorio
+Crear el archivo guardar_ip.sh:
+
+Bash
+cat << 'EOF' > guardar_ip.sh
+#!/bin/bash
+echo -n "Ingrese el nombre del archivo (ejemplo: mi_ip.txt): "
+read NOMBRE_ARCHIVO
+
+# En RHEL/CentOS se recomienda 'ip a', pero se incluye 'ifconfig' si está instalado
+if command -v ifconfig &> /dev/null; then
+    ifconfig > "$HOME/Desktop/$NOMBRE_ARCHIVO"
+else
+    ip a > "$HOME/Desktop/$NOMBRE_ARCHIVO"
+fi
+
+echo "Archivo guardado en $HOME/Desktop/$NOMBRE_ARCHIVO"
+EOF
+chmod +x guardar_ip.sh
+./guardar_ip.sh
+Práctica 3
+1. Verificar red y servicio SSH en Red Hat Linux (VM)
+Obtener la dirección IP de la VM Linux:
+
+Bash
+ip a
+Habilitar e iniciar el servicio SSH en Linux:
+
+Bash
+sudo systemctl enable --now sshd
+Permitir el tráfico SSH en el firewall:
+
+Bash
+sudo firewall-cmd --permanent --add-service=ssh
+sudo firewall-cmd --reload
+2. Configuración y prueba desde la máquina Host (Windows)
+Ejecutar los siguientes comandos en PowerShell o CMD de Windows:
+
+Probar conectividad con la VM Linux:
+
+DOS
+ping <IP_DE_TU_VM_LINUX>
+Probar conexión SSH inicial con usuario y contraseña:
+
+DOS
+ssh usuario@<IP_DE_TU_VM_LINUX>
+(Escribir exit para salir después de confirmar la conexión).
+
+Generar par de llaves SSH (presionar Enter cuando solicite la ruta para usar la predeterminada y Enter dos veces en passphrase para dejarla en blanco):
+
+DOS
+ssh-keygen -t rsa
+Copiar la llave pública a la VM Linux desde Windows:
+
+Opción A (PowerShell):
+
+PowerShell
+type $env:USERPROFILE\.ssh\id_rsa.pub | ssh usuario@<IP_DE_TU_VM_LINUX> "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys"
+Opción B (CMD):
+
+DOS
+type %USERPROFILE%\.ssh\id_rsa.pub | ssh usuario@<IP_DE_TU_VM_LINUX> "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys"
+Probar la conexión SSH automática sin contraseña:
+
+DOS
+ssh usuario@<IP_DE_TU_VM_LINUX>
